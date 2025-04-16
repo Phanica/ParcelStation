@@ -35,28 +35,21 @@ typedef struct User
     char password[MAX_PASSWORD_LENGTH];
 } User;
 
-typedef struct SignupArguments
+typedef struct SignupLoginArguments
 {
     char username[MAX_USERNAME_LENGTH];
     char password[MAX_PASSWORD_LENGTH];
-} SignupArguments;
+} SignupLoginArguments;
 
-typedef struct LoginArguments
-{
-    char username[MAX_USERNAME_LENGTH];
-    char password[MAX_PASSWORD_LENGTH];
-} LoginArguments;
-
-typedef struct TaskArguments
+typedef struct AssignReportArguments
 {
     char id[MAX_TASK_ID_LENGTH];
-} TaskArguments;
+} AssignReportArguments;
 
 typedef union RequestArguments
 {
-    SignupArguments signup;
-    LoginArguments login;
-    TaskArguments task;
+    SignupLoginArguments signup_login;
+    AssignReportArguments assign_report;
 } RequestArguments;
 
 typedef struct Request
@@ -94,9 +87,25 @@ SOCKET sock;
 WSADATA wsaData;
 ClientData client_data;
 
+size_t strsize(const char *str)
+{
+    return strlen(str) + 1;
+}
+
 void serialize_message(const Message *msg, char *buffer)
 {
-    memcpy(buffer, msg, MAX_MESSAGE_SIZE);
+    int username_length = strsize(msg->user.username);
+    int password_length = strsize(msg->user.password);
+    int header_length =
+        sizeof(username_length)
+        + sizeof(password_length)
+        + sizeof(msg->user.type)
+        + username_length
+        + password_length;
+
+    char a[0];
+    memcpy(buffer, msg->user.type, sizeof(msg->user.type));
+    buffer += sizeof(msg->user.type);
 }
 
 void deserialize_response(const char *buffer, Response *res)
@@ -111,8 +120,8 @@ void handle_signup(const char *username, const char *password)
     strncpy(msg.user.username, "default", sizeof(msg.user.username));
     strncpy(msg.user.password, "default", sizeof(msg.user.password));
     strncpy(msg.request.type, "signup", sizeof(msg.request.type));
-    strncpy(msg.request.arguments.signup.username, username, 32);
-    strncpy(msg.request.arguments.signup.password, password, 32);
+    strncpy(msg.request.arguments.signup_login.username, username, 32);
+    strncpy(msg.request.arguments.signup_login.password, password, 32);
 
     char buffer[MAX_MESSAGE_SIZE];
     serialize_message(&msg, buffer);
@@ -144,8 +153,8 @@ void handle_login(const char *username, const char *password)
         strncpy(msg.user.username, "default", 32);
         strncpy(msg.user.password, "default", 32);
         strncpy(msg.request.type, "login", 32);
-        strncpy(msg.request.arguments.login.username, client_data.username, 32);
-        strncpy(msg.request.arguments.login.password, client_data.password, 32);
+        strncpy(msg.request.arguments.signup_login.username, client_data.username, 32);
+        strncpy(msg.request.arguments.signup_login.password, client_data.password, 32);
 
         char buffer[MAX_MESSAGE_SIZE];
         serialize_message(&msg, buffer);
@@ -172,8 +181,8 @@ void handle_login(const char *username, const char *password)
     strncpy(msg.user.username, "default", 32);
     strncpy(msg.user.password, "default", 32);
     strncpy(msg.request.type, "login", 32);
-    strncpy(msg.request.arguments.login.username, username, 32);
-    strncpy(msg.request.arguments.login.password, password, 32);
+    strncpy(msg.request.arguments.signup_login.username, username, 32);
+    strncpy(msg.request.arguments.signup_login.password, password, 32);
 
     char buffer[MAX_MESSAGE_SIZE];
     serialize_message(&msg, buffer);
@@ -347,7 +356,7 @@ int main(int argc, char *argv[])
         strncpy(msg.user.username, client_data.username, 32);
         strncpy(msg.user.password, client_data.password, 32);
         strncpy(msg.request.type, "delete", 32);
-        strncpy(msg.request.arguments.task.id, tid, 32);
+        strncpy(msg.request.arguments.assign_report.id, tid, 32);
 
         char buffer[MAX_MESSAGE_SIZE];
         serialize_message(&msg, buffer);
