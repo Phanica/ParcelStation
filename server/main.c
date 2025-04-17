@@ -315,6 +315,114 @@ void process_request(SOCKET sock, cJSON *data)
     }
 }
 
+// 新增函数：解析 Request Format Alternative
+void parse_alternative_request(char *buffer, int buffer_size, char **username, char **password, char **request_type, char **arguments, int *arguments_length)
+{
+    int offset = 0;
+
+    // 解析 header_length 和 request_length
+    int header_length = *(int *)(buffer + offset);
+    offset += sizeof(int);
+    int request_length = *(int *)(buffer + offset);
+    offset += sizeof(int);
+
+    // 解析 username 和 password
+    int username_length = *(int *)(buffer + offset);
+    offset += sizeof(int);
+    *username = (char *)malloc(username_length + 1);
+    memcpy(*username, buffer + offset, username_length);
+    (*username)[username_length] = '\0';
+    offset += username_length;
+
+    int password_length = *(int *)(buffer + offset);
+    offset += sizeof(int);
+    *password = (char *)malloc(password_length + 1);
+    memcpy(*password, buffer + offset, password_length);
+    (*password)[password_length] = '\0';
+    offset += password_length;
+
+    // 解析 request_type 和 arguments
+    int user_type_enum = *(int *)(buffer + offset);
+    offset += sizeof(int);
+
+    int arguments_length_value = *(int *)(buffer + offset);
+    offset += sizeof(int);
+    *arguments_length = arguments_length_value;
+
+    *arguments = (char *)malloc(arguments_length_value);
+    memcpy(*arguments, buffer + offset, arguments_length_value);
+}
+
+// 新增函数：处理 postman 请求（基于 Request Format Alternative）
+void handle_alternative_postman_request(SOCKET sock, int info_index, char *request_type, char *arguments, int arguments_length)
+{
+    if (strcmp(request_type, "add") == 0)
+    {
+        int id_length = *(int *)arguments;
+        char *id = (char *)malloc(id_length + 1);
+        memcpy(id, arguments + sizeof(int), id_length);
+        id[id_length] = '\0';
+
+        int param_length = *(int *)(arguments + sizeof(int) + id_length);
+        char *param = (char *)malloc(param_length);
+        memcpy(param, arguments + sizeof(int) + id_length + sizeof(int), param_length);
+
+        handle_add(sock, info_index, id, cJSON_Parse(param));
+        free(id);
+        free(param);
+    }
+    else if (strcmp(request_type, "delete") == 0)
+    {
+        int id_length = *(int *)arguments;
+        char *id = (char *)malloc(id_length + 1);
+        memcpy(id, arguments + sizeof(int), id_length);
+        id[id_length] = '\0';
+
+        handle_delete(sock, info_index, id);
+        free(id);
+    }
+    else if (strcmp(request_type, "list") == 0)
+    {
+        handle_list(sock, info_index);
+    }
+    else if (strcmp(request_type, "get") == 0)
+    {
+        handle_get(sock, info_index);
+    }
+    else
+    {
+        reply(sock, "error", cJSON_CreateString("invalid request type"));
+    }
+}
+
+// 新增函数：处理 Request Format Alternative 请求
+void process_alternative_request(SOCKET sock, char *buffer, int buffer_size)
+{
+    char *username = NULL;
+    char *password = NULL;
+    char *request_type = NULL;
+    char *arguments = NULL;
+    int arguments_length = 0;
+
+    parse_alternative_request(buffer, buffer_size, &username, &password, &request_type, &arguments, &arguments_length);
+
+    int info_index;
+    if (login(username, password, &info_index))
+    {
+        handle_alternative_postman_request(sock, info_index, request_type, arguments, arguments_length);
+    }
+    else
+    {
+        reply(sock, "error", cJSON_CreateString("login failed"));
+    }
+
+    free(username);
+    free(password);
+    free(request_type);
+    free(arguments);
+}
+
+// 修改主循环：增加对 Request Format Alternative 的支持
 int main()
 {
     WSADATA wsaData;
@@ -355,19 +463,22 @@ int main()
         {
             buffer[recv_size] = '\0';
 
-            // #test
+            // 判断是否为 Request Format Alternative
+            if (*(int *)buffer == sizeof(int))
             {
-                printf("received: %s\n", buffer);
+                process_alternative_request(client_socket, buffer, recv_size);
             }
-
-            cJSON *request = cJSON_Parse(buffer);
-            if (!request)
+            else
             {
-                reply(client_socket, "error", cJSON_CreateString("invalid JSON"));
-                continue;
+                cJSON *request = cJSON_Parse(buffer);
+                if (!request)
+                {
+                    reply(client_socket, "error", cJSON_CreateString("invalid JSON"));
+                    continue;
+                }
+                process_request(client_socket, request);
+                cJSON_Delete(request);
             }
-            process_request(client_socket, request);
-            cJSON_Delete(request);
         }
         closesocket(client_socket);
     }
