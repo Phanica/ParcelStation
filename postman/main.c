@@ -278,7 +278,7 @@ void handle_signup(const char *username, const char *password)
     }
 }
 
-void handle_login(const char *username, const char *password)
+void handle_login(const char *username, const char *password, UserType user_type)
 {
     // Try cached credentials first
     if (client_data.has_login)
@@ -310,6 +310,7 @@ void handle_login(const char *username, const char *password)
     // Try new credentials
     strncpy(client_data.username, username, 32);
     strncpy(client_data.password, password, 32);
+    client_data.type = user_type;  // 保存用户类型
 
     Message msg = {0};
     strncpy(msg.user.type, "postman", 32);
@@ -392,8 +393,46 @@ void cleanup()
     WSACleanup();
 }
 
-int main(int argc, char *argv[])
-{
+void handle_manager_statistics() {
+    Message msg = {0};
+    msg.user.type = manager;
+    strncpy(msg.user.username, client_data.username, MAX_USERNAME_LENGTH);
+    strncpy(msg.user.password, client_data.password, MAX_PASSWORD_LENGTH);
+    msg.request.type = statistics;
+
+    char buffer[MAX_MESSAGE_SIZE];
+    serialize_message(&msg, buffer);
+    send(sock, buffer, MAX_MESSAGE_SIZE, 0);
+
+    char res_buffer[MAX_RESPONSE_SIZE];
+    recv(sock, res_buffer, MAX_RESPONSE_SIZE, 0);
+    
+    Response res;
+    deserialize_response(res_buffer, &res);
+    printf("Statistics: %s\n", res.message);
+}
+
+void handle_user_query(const char *parcel_id) {
+    Message msg = {0};
+    msg.user.type = user;
+    strncpy(msg.user.username, client_data.username, MAX_USERNAME_LENGTH);
+    strncpy(msg.user.password, client_data.password, MAX_PASSWORD_LENGTH);
+    msg.request.type = query;
+    strncpy(msg.request.arguments.assign_report.id, parcel_id, MAX_TASK_ID_LENGTH);
+
+    char buffer[MAX_MESSAGE_SIZE];
+    serialize_message(&msg, buffer);
+    send(sock, buffer, MAX_MESSAGE_SIZE, 0);
+
+    char res_buffer[MAX_RESPONSE_SIZE];
+    recv(sock, res_buffer, MAX_RESPONSE_SIZE, 0);
+    
+    Response res;
+    deserialize_response(res_buffer, &res);
+    printf("Query Result: %s\n", res.message);
+}
+
+int main(int argc, char *argv[]) {
     atexit(cleanup);
     WSAStartup(MAKEWORD(2, 2), &wsaData);
     memset(&client_data, 0, sizeof(client_data));

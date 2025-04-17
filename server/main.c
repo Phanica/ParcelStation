@@ -25,8 +25,8 @@ void update_database_file()
     free(json);
 }
 
-void load_database()
-{
+// 修改 load_database 函数
+void load_database() {
     FILE *file = fopen(database_file_path, "rb");
     if (file)
     {
@@ -44,6 +44,15 @@ void load_database()
     {
         database = cJSON_CreateObject();
         cJSON_AddItemToObject(database, "postman", cJSON_CreateArray());
+        cJSON_AddItemToObject(database, "manager", cJSON_CreateArray());
+        cJSON_AddItemToObject(database, "user", cJSON_CreateArray());
+        
+        // 添加默认管理员
+        cJSON *default_manager = cJSON_CreateObject();
+        cJSON_AddStringToObject(default_manager, "username", "admin");
+        cJSON_AddStringToObject(default_manager, "password", "admin123");
+        cJSON_AddItemToArray(cJSON_GetObjectItem(database, "manager"), default_manager);
+        
         cJSON *postman_array = cJSON_GetObjectItem(database, "postman");
         cJSON *default_user = cJSON_CreateObject();
         cJSON_AddStringToObject(default_user, "username", "default");
@@ -395,9 +404,36 @@ void handle_alternative_postman_request(SOCKET sock, int info_index, char *reque
     }
 }
 
-// 新增函数：处理 Request Format Alternative 请求
-void process_alternative_request(SOCKET sock, char *buffer, int buffer_size)
-{
+// 在 handle_alternative_postman_request 函数后添加
+void handle_alternative_manager_request(SOCKET sock, int info_index, char *request_type, char *arguments, int arguments_length) {
+    if (strcmp(request_type, "statistics") == 0) {
+        // 实现统计功能
+        cJSON *stats = cJSON_CreateObject();
+        cJSON_AddNumberToObject(stats, "postman_count", cJSON_GetArraySize(cJSON_GetObjectItem(database, "postman")));
+        reply(sock, "success", stats);
+    } else {
+        reply(sock, "error", cJSON_CreateString("invalid manager request type"));
+    }
+}
+
+void handle_alternative_user_request(SOCKET sock, int info_index, char *request_type, char *arguments, int arguments_length) {
+    if (strcmp(request_type, "query") == 0) {
+        int id_length = *(int *)arguments;
+        char *id = (char *)malloc(id_length + 1);
+        memcpy(id, arguments + sizeof(int), id_length);
+        id[id_length] = '\0';
+        
+        // 查询快递状态
+        cJSON *result = query_parcel_status(id);
+        reply(sock, result ? "success" : "error", result ? result : cJSON_CreateString("parcel not found"));
+        free(id);
+    } else {
+        reply(sock, "error", cJSON_CreateString("invalid user request type"));
+    }
+}
+
+// 修改 process_alternative_request 函数
+void process_alternative_request(SOCKET sock, char *buffer, int buffer_size) {
     char *username = NULL;
     char *password = NULL;
     char *request_type = NULL;
@@ -409,7 +445,17 @@ void process_alternative_request(SOCKET sock, char *buffer, int buffer_size)
     int info_index;
     if (login(username, password, &info_index))
     {
-        handle_alternative_postman_request(sock, info_index, request_type, arguments, arguments_length);
+        switch(user_type_enum) {
+            case 0: // postman
+                handle_alternative_postman_request(sock, info_index, request_type, arguments, arguments_length);
+                break;
+            case 1: // manager
+                handle_alternative_manager_request(sock, info_index, request_type, arguments, arguments_length);
+                break;
+            case 2: // user
+                handle_alternative_user_request(sock, info_index, request_type, arguments, arguments_length);
+                break;
+        }
     }
     else
     {
@@ -487,4 +533,22 @@ int main()
     closesocket(server_socket);
     WSACleanup();
     return 0;
+}
+
+// 添加快递查询函数
+cJSON *query_parcel_status(const char *parcel_id) {
+    cJSON *postman = cJSON_GetObjectItem(database, "postman");
+    cJSON *item;
+    
+    cJSON_ArrayForEach(item, postman) {
+        cJSON *parcels = cJSON_GetObjectItem(item, "parcels");
+        cJSON *parcel;
+        cJSON_ArrayForEach(parcel, parcels) {
+            cJSON *pid = cJSON_GetObjectItem(parcel, "id");
+            if (pid && strcmp(pid->valuestring, parcel_id) == 0) {
+                return cJSON_Duplicate(parcel, 1);
+            }
+        }
+    }
+    return NULL;
 }
