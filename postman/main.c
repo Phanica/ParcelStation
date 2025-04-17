@@ -9,6 +9,9 @@
 #define MAX_USERNAME_LENGTH 32
 #define MAX_PASSWORD_LENGTH 32
 #define MAX_TASK_ID_LENGTH 32
+#define MAX_ARGS_LENGTH 256
+#define MAX_HEADER_LENGTH 256
+#define MAX_REQ_LENGTH 256
 
 typedef enum UserType
 {
@@ -92,20 +95,152 @@ size_t strsize(const char *str)
     return strlen(str) + 1;
 }
 
-void serialize_message(const Message *msg, char *buffer)
+void memcpyforwards(void **buffer_ptr, const void *src, size_t size)
 {
-    int username_length = strsize(msg->user.username);
-    int password_length = strsize(msg->user.password);
-    int header_length =
-        sizeof(username_length)
-        + sizeof(password_length)
-        + sizeof(msg->user.type)
-        + username_length
-        + password_length;
+    memcpy(*buffer_ptr, src, size);
+    *buffer_ptr += size;
+}
 
-    char a[0];
-    memcpy(buffer, msg->user.type, sizeof(msg->user.type));
-    buffer += sizeof(msg->user.type);
+int calculate_signup_login_args_size(const SignupLoginArguments *args, char *buffer)
+{
+    int username_length = strsize(args->username);
+    int password_length = strsize(args->password);
+    int args_length =
+        sizeof(username_length) +
+        sizeof(password_length) +
+        username_length +
+        password_length;
+
+    memcpyforwards(&buffer, &username_length, sizeof(username_length));
+    memcpyforwards(&buffer, &password_length, sizeof(password_length));
+    memcpyforwards(&buffer, args->username, username_length);
+    memcpyforwards(&buffer, args->password, password_length);
+
+    return args_length;
+}
+
+/* calculate_get_list_args_size = delete */
+
+int calculate_assign_report_args_size(const AssignReportArguments *args, char *buffer)
+{
+    int id_length = strsize(args->id);
+    int args_length =
+        sizeof(id_length) +
+        id_length;
+
+    memcpyforwards(&buffer, &id_length, sizeof(id_length));
+    memcpyforwards(&buffer, args->id, id_length);
+
+    return args_length;
+}
+
+int calculate_arguments_size(const RequestArguments *args, char *buffer)
+{
+}
+
+int calculate_request_size(const Request *req, char *buffer)
+{
+    switch (req->type)
+    {
+    case signup:
+    case login:
+    {
+        char *args_buffer[MAX_ARGS_LENGTH];
+        int args_length = calculate_signup_login_args_size(&req->arguments.signup_login, args_buffer);
+
+        int request_size =
+            sizeof(args_length) +
+            sizeof(req->type) +
+            args_length;
+
+        memcpyforwards(&buffer, &args_length, sizeof(args_length));
+        memcpyforwards(&buffer, req->type, sizeof(req->type));
+        memcpyforwards(&buffer, args_buffer, args_length);
+
+        return request_size;
+        break;
+    }
+
+    case get:
+    case list:
+    {
+        int args_length = 0;
+
+        int request_size =
+            sizeof(args_length) +
+            sizeof(req->type) +
+            args_length;
+
+        memcpyforwards(&buffer, &args_length, sizeof(args_length));
+        memcpyforwards(&buffer, &req->type, sizeof(req->type));
+
+        return request_size;
+        break;
+    }
+
+    case assign:
+    case report_loss:
+    {
+        char *args_buffer[MAX_ARGS_LENGTH];
+        int args_length = calculate_assign_report_args_size(&req->arguments.signup_login, args_buffer);
+
+        int request_size =
+            sizeof(args_length) +
+            sizeof(req->type) +
+            args_length;
+
+        memcpyforwards(&buffer, &args_length, sizeof(args_length));
+        memcpyforwards(&buffer, req->type, sizeof(req->type));
+        memcpyforwards(&buffer, args_buffer, args_length);
+
+        return request_size;
+        break;
+    }
+
+    default:
+        return 0;
+    }
+}
+
+int calculate_header_size(const User *user, char *buffer)
+{
+    int username_length = strsize(user->username);
+    int password_length = strsize(user->password);
+
+    int header_size =
+        sizeof(username_length) +
+        sizeof(password_length) +
+        sizeof(user->type) +
+        username_length +
+        password_length;
+
+    memcpyforwards(&buffer, &username_length, sizeof(username_length));
+    memcpyforwards(&buffer, &password_length, sizeof(password_length));
+    memcpyforwards(&buffer, &user->type, sizeof(user->type));
+    memcpyforwards(&buffer, user->username, username_length);
+    memcpyforwards(&buffer, user->password, password_length);
+}
+
+int serialize_message(const Message *msg, char *buffer)
+{
+    char header_buffer[MAX_HEADER_LENGTH];
+    int header_length = calculate_header_size(&msg->user, header_buffer);
+
+    char req_buffer[MAX_REQ_LENGTH];
+    int req_length = calculate_request_size(&msg->request, req_buffer);
+
+    int message_length =
+        sizeof(header_length) +
+        sizeof(req_length) +
+        header_length +
+        req_length;
+
+    memcpyforwards(&buffer, &header_length, sizeof(header_length));
+    memcpyforwards(&buffer, &req_length, sizeof(req_length));
+    memcpyforwards(&buffer, header_buffer, header_length);
+    memcpyforwards(&buffer, req_buffer, req_length);
+
+    return message_length;
 }
 
 void deserialize_response(const char *buffer, Response *res)
@@ -115,17 +250,17 @@ void deserialize_response(const char *buffer, Response *res)
 
 void handle_signup(const char *username, const char *password)
 {
-    Message msg = {0};
-    strncpy(msg.user.type, "postman", sizeof(msg.user.type));
-    strncpy(msg.user.username, "default", sizeof(msg.user.username));
-    strncpy(msg.user.password, "default", sizeof(msg.user.password));
-    strncpy(msg.request.type, "signup", sizeof(msg.request.type));
-    strncpy(msg.request.arguments.signup_login.username, username, 32);
-    strncpy(msg.request.arguments.signup_login.password, password, 32);
+    Message msg;
+    msg.user.type = postman;
+    strncpy(msg.user.username, "default", strsize("default"));
+    strncpy(msg.user.password, "default", strsize("default"));
+    msg.request.type = signup;
+    strncpy(msg.request.arguments.signup_login.username, username, strsize(username));
+    strncpy(msg.request.arguments.signup_login.password, password, strsize(password));
 
     char buffer[MAX_MESSAGE_SIZE];
-    serialize_message(&msg, buffer);
-    send(sock, buffer, MAX_MESSAGE_SIZE, 0);
+    int message_length = serialize_message(&msg, buffer);
+    send(sock, buffer, message_length, 0);
 
     char res_buffer[MAX_RESPONSE_SIZE];
     recv(sock, res_buffer, MAX_RESPONSE_SIZE, 0);
