@@ -13,7 +13,7 @@ void init_connection() {
     addr.sin_port = htons(8080);
     addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     
-    connect(sock, (struct sockaddr *)&addr, sizeof(addr));
+    int _ = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
 }
 
 void close_connection() {
