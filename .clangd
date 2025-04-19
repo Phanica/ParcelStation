@@ -1,0 +1,9 @@
+CompileFlags:
+  Add: 
+    - -g
+    - -ID:/Project/ParcelStation/server
+    - -ID:/Project/ParcelStation/client
+    - -ID:/mingw64/x86_64-w64-mingw32/include
+    # - -ID:/mingw64/lib/gcc/x86_64-w64-mingw32/13.2.0/include
+    - --target=x86_64-w64-mingw32
+  CompilationDatabase: build

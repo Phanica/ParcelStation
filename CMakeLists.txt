@@ -19,21 +19,23 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 find_package(Threads REQUIRED)
 
 # 服务器端配置
-add_executable(server
-    server/main.c
-    server/cJSON.c
-)
-
-target_include_directories(server PRIVATE server)
-target_link_libraries(server ws2_32)
+add_subdirectory(server)
+# add_executable(server
+#     server/main.c
+#     server/cJSON.c
+# )
+# target_include_directories(server PRIVATE server)
+# target_link_libraries(server ws2_32)
 
 # 客户端配置
-add_executable(postman_client
-    postman/main.c
-)
-
-target_include_directories(postman_client PRIVATE postman)
-target_link_libraries(postman_client ws2_32)
+add_subdirectory(client)
+# add_executable(postman_client
+#     client/postman_client.c
+#     client/common.c
+#     client/main.c
+# )
+# target_include_directories(postman_client PRIVATE client)
+# target_link_libraries(postman_client ws2_32)
 
 # 可选：安装规则
 install(TARGETS server postman_client
@@ -41,4 +43,4 @@ install(TARGETS server postman_client
 )
 
 # 复制数据文件
-configure_file(server/data.json ${CMAKE_BINARY_DIR}/bin/data.json COPYONLY)
+# configure_file(server/data.json ${CMAKE_BINARY_DIR}/bin/data.json COPYONLY)

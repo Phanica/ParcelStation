@@ -10,6 +10,8 @@
 
 #define BUFFER_SIZE 1024
 
+cJSON *query_parcel_status(const char *parcel_id);
+
 char database_file_path[MAX_PATH];
 cJSON *database = NULL;
 
@@ -325,7 +327,8 @@ void process_request(SOCKET sock, cJSON *data)
 }
 
 // 新增函数：解析 Request Format Alternative
-void parse_alternative_request(char *buffer, int buffer_size, char **username, char **password, char **request_type, char **arguments, int *arguments_length)
+void parse_alternative_request(char *buffer, int buffer_size, char **username, char **password, 
+                             char **request_type, char **arguments, int *arguments_length, int *user_type_enum) 
 {
     int offset = 0;
 
@@ -351,7 +354,8 @@ void parse_alternative_request(char *buffer, int buffer_size, char **username, c
     offset += password_length;
 
     // 解析 request_type 和 arguments
-    int user_type_enum = *(int *)(buffer + offset);
+    // 在解析arguments之前添加
+    *user_type_enum = *(int *)(buffer + offset);
     offset += sizeof(int);
 
     int arguments_length_value = *(int *)(buffer + offset);
@@ -432,15 +436,17 @@ void handle_alternative_user_request(SOCKET sock, int info_index, char *request_
     }
 }
 
-// 修改 process_alternative_request 函数
 void process_alternative_request(SOCKET sock, char *buffer, int buffer_size) {
     char *username = NULL;
     char *password = NULL;
     char *request_type = NULL;
     char *arguments = NULL;
     int arguments_length = 0;
+    int user_type_enum = 0;  // 添加变量声明并初始化为默认值
 
-    parse_alternative_request(buffer, buffer_size, &username, &password, &request_type, &arguments, &arguments_length);
+    parse_alternative_request(buffer, buffer_size, &username, &password, &request_type, &arguments, &arguments_length, &user_type_enum);
+    // 需要修改parse_alternative_request函数以返回user_type_enum
+    // 或者从buffer中解析出user_type_enum
 
     int info_index;
     if (login(username, password, &info_index))
@@ -494,7 +500,7 @@ int main()
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     server_addr.sin_port = htons(8080);
 
-    bind(server_socket, (SOCKADDR *)&server_addr, sizeof(server_addr));
+    int _ = bind(server_socket, (SOCKADDR *)&server_addr, sizeof(server_addr));
     listen(server_socket, SOMAXCONN);
 
     while (1)
