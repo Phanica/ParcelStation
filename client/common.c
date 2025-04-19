@@ -1,7 +1,7 @@
 #include "common.h"
 
-ClientData client_data = {0};
-SOCKET sock;
+// ClientData client_data = {0};
+// SOCKET sock;
 WSADATA wsaData;
 
 void init_connection() {

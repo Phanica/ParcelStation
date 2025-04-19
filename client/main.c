@@ -1,10 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <winsock2.h>
+#include "main.h"
 
 // #pragma pack(push, 1)
 
+/*
 #define MAX_USERNAME_LENGTH 32
 #define MAX_PASSWORD_LENGTH 32
 #define MAX_TASK_ID_LENGTH 32
@@ -71,11 +69,15 @@ typedef struct ClientData {
   char password[32];
   int has_login;
 } ClientData;
+*/
 
 // #pragma pack(pop)
 
+/*
 #define MAX_MESSAGE_SIZE 2048
 #define MAX_RESPONSE_SIZE 2048
+*/
+
 #define DATA_FILE "data.dat"
 
 /*
@@ -83,9 +85,6 @@ SOCKET sock;
 WSADATA wsaData;
 ClientData client_data;
 */
-
-extern SOCKET sock;
-extern ClientData client_data;
 
 size_t strsize(const char *str) { return strlen(str) + 1; }
 

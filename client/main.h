@@ -1,8 +1,10 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <winsock2.h>
-#include <windows.h>
 
 #define MAX_USERNAME_LENGTH 32
 #define MAX_PASSWORD_LENGTH 32
@@ -28,7 +30,8 @@ typedef enum RequestType {
     assign,
     report_loss,
     statistics,
-    query
+    query,
+    delete
 } RequestType;
 
 typedef struct User {
@@ -73,12 +76,16 @@ typedef struct ClientData {
     UserType type;
 } ClientData;
 
+extern ClientData client_data;
+extern SOCKET sock;
+
 // 公共函数声明
 void init_connection();
 void close_connection();
 void send_request(Message *msg);
-void handle_login(const char *username, const char *password, UserType user_type);
+void handle_login(const char *username, const char *password);
 int serialize_message(const Message *msg, char *buffer);
 void deserialize_response(const char *buffer, Response *res);
+size_t strsize(const char *str);
 
 #endif // MAIN_H

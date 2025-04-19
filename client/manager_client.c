@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     init_connection();
     
     if (strcmp(argv[1], "login") == 0) {
-        handle_login(argv[2], argv[3], manager);
+        handle_login(argv[2], argv[3]);
     } else if (client_data.has_login && client_data.type == manager) {
         if (strcmp(argv[1], "stats") == 0) {
             manager_get_statistics();

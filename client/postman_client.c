@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
   init_connection();
 
   if (strcmp(argv[1], "login") == 0) {
-    handle_login(argv[2], argv[3], postman);
+    handle_login(argv[2], argv[3]);
   } else if (client_data.has_login && client_data.type == postman) {
     if (strcmp(argv[1], "assign") == 0) {
       postman_assign_parcel(argv[4]);
