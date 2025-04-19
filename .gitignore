@@ -1,4 +1,4 @@
 .vscode/
 build/
-.clangd
+./.clangd
 discarded/
