@@ -29,7 +29,7 @@ target_link_libraries(server ws2_32)
 
 # 客户端配置
 add_executable(postman_client
-    postman/main.c
+    client/postman_client.c
 )
 
 target_include_directories(postman_client PRIVATE postman)
