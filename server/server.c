@@ -64,6 +64,14 @@ void initialize_database() {
   default_postman->parcels = NULL;
   default_postman->next = NULL;
   database.postmen = default_postman;
+
+  // 添加默认普通用户
+  UserData *default_user = (UserData *)malloc(sizeof(UserData));
+  strcpy(default_user->username, "user");
+  strcpy(default_user->password, "user123");
+  default_user->parcels = NULL;
+  default_user->next = NULL;
+  database.users = default_user;
 }
 
 UserData *find_user(UserData *list, const char *username) {
