@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <winsock2.h>
-#include <windows.h>
-
 
 // #pragma pack(push, 1)
 
@@ -80,9 +78,14 @@ typedef struct ClientData {
 #define MAX_RESPONSE_SIZE 2048
 #define DATA_FILE "data.dat"
 
+/*
 SOCKET sock;
 WSADATA wsaData;
 ClientData client_data;
+*/
+
+extern SOCKET sock;
+extern ClientData client_data;
 
 size_t strsize(const char *str) { return strlen(str) + 1; }
 
@@ -387,6 +390,7 @@ void handle_user_query(const char *parcel_id) {
   printf("Query Result: %s\n", res.message);
 }
 
+/*
 int main(int argc, char *argv[]) {
   atexit(cleanup);
   WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -483,3 +487,4 @@ int main(int argc, char *argv[]) {
   save_client_data();
   return 0;
 }
+*/
