@@ -1,4 +1,4 @@
 add_executable(server
-    binary_server.c
+    server.c
 )
 target_link_libraries(server ws2_32)
