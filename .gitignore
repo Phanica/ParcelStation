@@ -1,9 +1,1 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
 .vscode/
-=======
-/.vscode
->>>>>>> 67e4432 (Init)
-=======
-.vscode/
->>>>>>> 426f647 (chore: 更新.gitignore文件以正确忽略.vscode目录)
