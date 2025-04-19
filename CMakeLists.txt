@@ -19,12 +19,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 find_package(Threads REQUIRED)
 
 # 服务器端配置
-add_executable(server
-    server/main.c
-    server/cJSON.c
-)
-target_include_directories(server PRIVATE server)
-target_link_libraries(server ws2_32)
+add_subdirectory(server)
+# add_executable(server
+#     server/main.c
+#     server/cJSON.c
+# )
+# target_include_directories(server PRIVATE server)
+# target_link_libraries(server ws2_32)
 
 # 客户端配置
 add_subdirectory(client)
