@@ -1,9 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <winsock2.h>
-
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -237,6 +235,7 @@ void handle_postman_request(SOCKET sock, UserData *user,
     break;
   }
 }
+
 void process_request(SOCKET sock, const char *buffer, int buffer_size) {
   char *username = NULL;
   char *password = NULL;
