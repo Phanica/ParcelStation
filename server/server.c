@@ -155,10 +155,88 @@ void handle_postman_request(SOCKET sock, UserData *user,
     send_response(sock, SUCCESS, "parcel added");
     break;
   }
-    // 其他请求类型的处理...
+  case SIGNUP:
+    send_response(sock, ERR, "Postman cannot perform signup");
+    break;
+  case LOGIN:
+    send_response(sock, ERR, "Postman login should be handled elsewhere");
+    break;
+  case LOGOUT:
+    send_response(sock, SUCCESS, "Postman logged out");
+    break;
+  case GET: {
+    if (arguments_length >= MAX_TASK_ID_LENGTH) {
+      char id[MAX_TASK_ID_LENGTH];
+      memcpy(id, arguments, MAX_TASK_ID_LENGTH);
+      Parcel *current = user->parcels;
+      while (current != NULL) {
+        if (strcmp(current->id, id) == 0) {
+          send_response(sock, SUCCESS, "Parcel found");
+          return;
+        }
+        current = current->next;
+      }
+      send_response(sock, ERR, "Parcel not found");
+    } else {
+      send_response(sock, ERR, "Invalid arguments for GET");
+    }
+    break;
+  }
+  case LIST: {
+    char response[BUFFER_SIZE] = "";
+    Parcel *current = user->parcels;
+    if (current == NULL) {
+      send_response(sock, SUCCESS, "No parcels assigned");
+    } else {
+      strcat(response, "Assigned parcels: ");
+      while (current != NULL) {
+        strcat(response, current->id);
+        if (current->next != NULL) {
+          strcat(response, ", ");
+        }
+        current = current->next;
+      }
+      send_response(sock, SUCCESS, response);
+    }
+    break;
+  }
+  case REPORT_LOSS: {
+    if (arguments_length >= MAX_TASK_ID_LENGTH) {
+      char id[MAX_TASK_ID_LENGTH];
+      memcpy(id, arguments, MAX_TASK_ID_LENGTH);
+      Parcel *prev = NULL;
+      Parcel *current = user->parcels;
+      while (current != NULL) {
+        if (strcmp(current->id, id) == 0) {
+          if (prev == NULL) {
+            user->parcels = current->next;
+          } else {
+            prev->next = current->next;
+          }
+          free(current);
+          send_response(sock, SUCCESS, "Parcel reported lost and removed");
+          return;
+        }
+        prev = current;
+        current = current->next;
+      }
+      send_response(sock, ERR, "Parcel not found");
+    } else {
+      send_response(sock, ERR, "Invalid arguments for REPORT_LOSS");
+    }
+    break;
+  }
+  case STATISTICS:
+    send_response(sock, ERR, "Postman cannot perform statistics");
+    break;
+  case QUERY:
+    send_response(sock, ERR, "Postman cannot perform query");
+    break;
+  default:
+    send_response(sock, ERR, "Unknown request type");
+    break;
   }
 }
-
 void process_request(SOCKET sock, const char *buffer, int buffer_size) {
   char *username = NULL;
   char *password = NULL;
