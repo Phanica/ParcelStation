@@ -86,12 +86,16 @@ WSADATA wsaData;
 void init_connection();
 void close_connection();
 void send_request(Message *msg);
+void handle_signup(const char *username, const char *password);
 void handle_login(const char *username, const char *password);
+void handle_logout();
 int serialize_message(const Message *msg, char *buffer);
 void deserialize_response(const char *buffer, Response *res);
 size_t strsize(const char *str);
 void init_connection();
 void close_connection();
 void send_request(Message *msg);
+void load_client_data();
+void save_client_data();
 
 #endif

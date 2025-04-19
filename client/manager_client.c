@@ -26,6 +26,12 @@ int main(int argc, char *argv[]) {
         }
     }
     
+    if (strcmp(argv[1], "signup") == 0) {
+        handle_signup(argv[2], argv[3]);
+    }
+    else if (strcmp(argv[1], "logout") == 0) {
+        handle_logout();
+    }
     close_connection();
     return 0;
 }

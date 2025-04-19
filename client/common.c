@@ -7,33 +7,34 @@
 // WSADATA wsaData;
 
 void init_connection() {
-    WSAStartup(MAKEWORD(2, 2), &wsaData);
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    
-    struct sockaddr_in addr = {0};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(8080);
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    
-    int _ = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
+  load_client_data();
+  WSAStartup(MAKEWORD(2, 2), &wsaData);
+  sock = socket(AF_INET, SOCK_STREAM, 0);
+
+  struct sockaddr_in addr = {0};
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(8080);
+  addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+  int _ = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
 }
 
 void close_connection() {
-    closesocket(sock);
-    WSACleanup();
+  closesocket(sock);
+  WSACleanup();
 }
 
 void send_request(Message *msg) {
-    char buffer[MAX_MESSAGE_SIZE];
-    serialize_message(msg, buffer);
-    send(sock, buffer, MAX_MESSAGE_SIZE, 0);
-    
-    char res_buffer[MAX_RESPONSE_SIZE];
-    recv(sock, res_buffer, MAX_RESPONSE_SIZE, 0);
-    
-    Response res;
-    deserialize_response(res_buffer, &res);
-    printf("Response: %s - %s\n", res.status, res.message);
+  char buffer[MAX_MESSAGE_SIZE];
+  serialize_message(msg, buffer);
+  send(sock, buffer, MAX_MESSAGE_SIZE, 0);
+
+  char res_buffer[MAX_RESPONSE_SIZE];
+  recv(sock, res_buffer, MAX_RESPONSE_SIZE, 0);
+
+  Response res;
+  deserialize_response(res_buffer, &res);
+  printf("Response: %s - %s\n", res.status, res.message);
 }
 
 size_t strsize(const char *str) { return strlen(str) + 1; }
@@ -186,11 +187,38 @@ void handle_signup(const char *username, const char *password) {
   Response res;
   deserialize_response(res_buffer, &res);
   if (strcmp(res.status, "success") == 0) {
-    printf("%s\n", res.message);
+    printf("注册成功: %s\n", res.message);
+    strncpy(client_data.username, username, MAX_USERNAME_LENGTH);
+    strncpy(client_data.password, password, MAX_PASSWORD_LENGTH);
+    client_data.has_login = 1;
+    save_client_data();
   } else {
-    fprintf(stderr, "Error: %s\n", res.message);
+    fprintf(stderr, "注册失败: %s\n", res.message);
     exit(1);
   }
+}
+
+void handle_logout() {
+  if (client_data.has_login) {
+    Message msg = {0};
+    msg.user.type = client_data.type;
+    strncpy(msg.user.username, client_data.username, MAX_USERNAME_LENGTH);
+    strncpy(msg.user.password, client_data.password, MAX_PASSWORD_LENGTH);
+    msg.request.type = logout;
+
+    char buffer[MAX_MESSAGE_SIZE];
+    serialize_message(&msg, buffer);
+    send(sock, buffer, MAX_MESSAGE_SIZE, 0);
+
+    char res_buffer[MAX_RESPONSE_SIZE];
+    recv(sock, res_buffer, MAX_RESPONSE_SIZE, 0);
+
+    Response res;
+    deserialize_response(res_buffer, &res);
+    printf("登出: %s\n", res.message);
+  }
+  memset(&client_data, 0, sizeof(client_data));
+  save_client_data();
 }
 
 void handle_login(const char *username, const char *password) {
@@ -250,6 +278,7 @@ void handle_login(const char *username, const char *password) {
   if (strcmp(res.status, "success") == 0) {
     client_data.has_login = 1;
     printf("%s\n", res.message);
+    save_client_data();
   } else {
     memset(&client_data, 0, sizeof(client_data));
     fprintf(stderr, "Error: %s\n", res.message);
@@ -257,7 +286,7 @@ void handle_login(const char *username, const char *password) {
   }
 }
 
-void handle_logout() { memset(&client_data, 0, sizeof(client_data)); }
+// void handle_logout() { memset(&client_data, 0, sizeof(client_data)); }
 
 void handle_get() {
   Message msg = {0};

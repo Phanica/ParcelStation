@@ -102,6 +102,13 @@ int main(int argc, char *argv[]) {
     if (strcmp(action, "query") == 0) {
       user_query_parcel(parcel_id);
     }
+    
+    if (strcmp(action, "signup") == 0) {
+        handle_signup(username, password);
+    }
+    else if (strcmp(action, "logout") == 0) {
+        handle_logout();
+    }
   }
 
   close_connection();
