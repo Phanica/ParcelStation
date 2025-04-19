@@ -1,7 +1,6 @@
 # 客户端公共库
 add_library(client_common
     common.c
-    main.c
 )
 target_include_directories(client_common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
